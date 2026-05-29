@@ -12,7 +12,8 @@ import {
   Folder, 
   FileText, 
   FileCode2,
-  CheckCircle 
+  CheckCircle,
+  ArrowLeft
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -32,76 +33,113 @@ const memoryData = [
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'files' | 'notebooks' | 'metrics'>('files');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPath, setCurrentPath] = useState<string>('/');
 
   const handleDownload = () => alert("Downloading all replication materials...");
   const handleClone = () => alert("Run: git clone https://github.com/ImpuseCode/LangChain4jvsPython-NativeFrameworks-.git");
 
+  const fileSystem: Record<string, any[]> = {
+    '/': [
+      { name: 'assets', typeText: 'Directory', size: '--', modified: 'recently', icon: Folder, iconColor: "text-slate-400", isDir: true },
+      { name: 'harness', typeText: 'Directory', size: '--', modified: 'recently', icon: Folder, iconColor: "text-slate-400", isDir: true },
+      { name: 'src', typeText: 'Directory', size: '--', modified: 'recently', icon: Folder, iconColor: "text-slate-400", isDir: true },
+      { name: '.env.example', typeText: 'Config', size: '445 B', modified: 'recently', icon: FileText, iconColor: "text-slate-400", isDir: false },
+      { name: '.gitignore', typeText: 'Config', size: '73 B', modified: 'recently', icon: FileText, iconColor: "text-slate-400", isDir: false },
+      { name: 'README.md', typeText: 'Markdown', size: '1.6 KB', modified: 'recently', icon: FileText, iconColor: "text-slate-400", isDir: false },
+      { name: 'index.html', typeText: 'HTML', size: '313 B', modified: 'recently', icon: FileCode2, iconColor: "text-blue-500", isDir: false },
+      { name: 'metadata.json', typeText: 'JSON', size: '251 B', modified: 'recently', icon: FileCode2, iconColor: "text-yellow-500", isDir: false },
+      { name: 'package-lock.json', typeText: 'JSON', size: '118 KB', modified: 'recently', icon: FileCode2, iconColor: "text-yellow-500", isDir: false },
+      { name: 'package.json', typeText: 'JSON', size: '871 B', modified: 'recently', icon: FileCode2, iconColor: "text-yellow-500", isDir: false },
+      { name: 'tsconfig.json', typeText: 'JSON', size: '508 B', modified: 'recently', icon: FileCode2, iconColor: "text-yellow-500", isDir: false },
+      { name: 'vite.config.ts', typeText: 'TypeScript', size: '708 B', modified: 'recently', icon: FileCode2, iconColor: "text-blue-500", isDir: false }
+    ],
+    '/harness': [
+      { name: 'main_analysis.ipynb', typeText: 'IPYNB', size: '4 KB', modified: 'recently', icon: FileCode2, iconColor: "text-orange-500", badge: 'IPYNB', badgeColor: "bg-orange-100 text-orange-700", isDir: false, action: () => setActiveTab('notebooks') }
+    ],
+    '/assets': [],
+    '/src': []
+  };
+
+  const handleNavigate = (dirName: string) => {
+    if (currentPath === '/') {
+      setCurrentPath(`/${dirName}`);
+    } else {
+      setCurrentPath(`${currentPath}/${dirName}`);
+    }
+    setSearchQuery('');
+  };
+
+  const handleNavigateUp = () => {
+    if (currentPath === '/') return;
+    const parts = currentPath.split('/');
+    parts.pop();
+    const newPath = parts.join('/') || '/';
+    setCurrentPath(newPath);
+    setSearchQuery('');
+  };
+
+  const currentFiles = fileSystem[currentPath] || [];
+  const filteredFiles = currentFiles.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
   const renderFileBrowser = () => (
-    <div className="overflow-y-auto flex-1">
-      <table className="w-full text-left border-collapse">
-        <thead className="sticky top-0 bg-white border-b border-slate-200 shadow-sm">
-          <tr className="text-slate-400 text-[11px] uppercase tracking-wider">
-            <th className="px-4 py-3 font-bold">Name</th>
-            <th className="px-4 py-3 font-bold">Type</th>
-            <th className="px-4 py-3 font-bold">Size</th>
-            <th className="px-4 py-3 font-bold">Last Modified</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          <tr className="hover:bg-slate-50 cursor-pointer" onClick={() => alert('Folder: harness/')}>
-            <td className="px-4 py-3 font-medium text-slate-900 flex items-center gap-2">
-              <Folder size={14} className="text-slate-400" fill="currentColor"/> harness/
-            </td>
-            <td className="px-4 py-3 text-slate-500">Directory</td>
-            <td className="px-4 py-3 text-slate-500">2.4 MB</td>
-            <td className="px-4 py-3 text-slate-500">2 days ago</td>
-          </tr>
-          <tr className="hover:bg-slate-50 bg-indigo-50/20 cursor-pointer border-l-2 border-l-indigo-500" onClick={() => alert('Downloading raw_measurements_full.parquet (13.8 GB)')}>
-            <td className="px-4 py-3 font-medium text-slate-900 flex items-center gap-2">
-              <Database size={14} className="text-indigo-500" fill="currentColor"/> raw_measurements_full.parquet
-            </td>
-            <td className="px-4 py-3 text-slate-500 text-xs">
-              <span className="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold">PARQUET</span>
-            </td>
-            <td className="px-4 py-3 font-semibold text-slate-900">13.8 GB</td>
-            <td className="px-4 py-3 text-slate-500">1 week ago</td>
-          </tr>
-          <tr className="hover:bg-slate-50 cursor-pointer" onClick={() => setActiveTab('notebooks')}>
-            <td className="px-4 py-3 font-medium text-slate-900 flex items-center gap-2">
-              <FileCode2 size={14} className="text-orange-500" fill="currentColor"/> analysis_v1.ipynb
-            </td>
-            <td className="px-4 py-3 text-slate-500 text-xs">
-              <span className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-bold">IPYNB</span>
-            </td>
-            <td className="px-4 py-3 text-slate-500">412 KB</td>
-            <td className="px-4 py-3 text-slate-500">12 hours ago</td>
-          </tr>
-          <tr className="hover:bg-slate-50 cursor-pointer" onClick={() => alert('Folder: scripts/')}>
-            <td className="px-4 py-3 font-medium text-slate-900 flex items-center gap-2">
-              <Folder size={14} className="text-slate-400" fill="currentColor"/> scripts/
-            </td>
-            <td className="px-4 py-3 text-slate-500">Directory</td>
-            <td className="px-4 py-3 text-slate-500">84 KB</td>
-            <td className="px-4 py-3 text-slate-500">3 days ago</td>
-          </tr>
-          <tr className="hover:bg-slate-50 cursor-pointer" onClick={() => alert('Viewing LICENSE.md')}>
-            <td className="px-4 py-3 font-medium text-slate-900 flex items-center gap-2">
-              <FileText size={14} className="text-slate-400" fill="currentColor"/> LICENSE.md
-            </td>
-            <td className="px-4 py-3 text-slate-500">Markdown</td>
-            <td className="px-4 py-3 text-slate-500">4 KB</td>
-            <td className="px-4 py-3 text-slate-500">1 month ago</td>
-          </tr>
-          <tr className="hover:bg-slate-50 cursor-pointer" onClick={() => alert('Viewing README.md')}>
-            <td className="px-4 py-3 font-medium text-slate-900 flex items-center gap-2">
-              <FileText size={14} className="text-slate-400" fill="currentColor"/> README.md
-            </td>
-            <td className="px-4 py-3 text-slate-500">Markdown</td>
-            <td className="px-4 py-3 text-slate-500">12 KB</td>
-            <td className="px-4 py-3 text-slate-500">2 hours ago</td>
-          </tr>
-        </tbody>
-      </table>
+    <div className="overflow-y-auto flex-1 flex flex-col">
+      <div className="bg-slate-50 border-b border-slate-200 px-4 py-2 flex items-center gap-2 text-xs text-slate-600 shrink-0">
+        <button 
+          onClick={handleNavigateUp} 
+          disabled={currentPath === '/'}
+          className={`p-1 rounded flex items-center ${currentPath === '/' ? 'text-slate-300 cursor-not-allowed' : 'hover:bg-slate-200 cursor-pointer text-slate-700'}`}
+        >
+          <ArrowLeft size={14} />
+        </button>
+        <span className="font-mono bg-white px-2 py-1 rounded border border-slate-200 text-indigo-700">github.com/lc4j-benchmark{currentPath}</span>
+      </div>
+      <div className="overflow-y-auto w-full">
+        <table className="w-full text-left border-collapse">
+          <thead className="sticky top-0 bg-white border-b border-slate-200 shadow-sm">
+            <tr className="text-slate-400 text-[11px] uppercase tracking-wider">
+              <th className="px-4 py-3 font-bold">Name</th>
+              <th className="px-4 py-3 font-bold">Type</th>
+              <th className="px-4 py-3 font-bold">Size</th>
+              <th className="px-4 py-3 font-bold">Last Modified</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filteredFiles.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-4 py-8 text-center text-slate-500 font-medium">No files found.</td>
+              </tr>
+            )}
+            {filteredFiles.map((file, idx) => {
+              const Icon = file.icon;
+              return (
+                <tr 
+                  key={idx} 
+                  className={`hover:bg-slate-50 cursor-pointer ${file.highlight ? 'bg-indigo-50/20 border-l-2 border-l-indigo-500' : ''}`}
+                  onClick={() => {
+                    if (file.isDir) {
+                      handleNavigate(file.name);
+                    } else if (file.action) {
+                      file.action();
+                    }
+                  }}
+                >
+                  <td className="px-4 py-3 font-medium text-slate-900 flex items-center gap-2">
+                    <Icon size={14} className={file.iconColor} fill="currentColor"/> {file.name}{file.isDir ? '/' : ''}
+                  </td>
+                  <td className={`px-4 py-3 ${file.badge ? 'text-xs' : 'text-slate-500'}`}>
+                    {file.badge ? (
+                      <span className={`${file.badgeColor} px-1.5 py-0.5 rounded font-bold`}>{file.badge}</span>
+                    ) : file.typeText}
+                  </td>
+                  <td className={`px-4 py-3 ${file.highlight ? 'font-semibold text-slate-900' : 'text-slate-500'}`}>{file.size}</td>
+                  <td className="px-4 py-3 text-slate-500">{file.modified}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 
@@ -253,7 +291,7 @@ np.random.seed(<span className="text-orange-500">42</span>)
             <div>
               <h3 className="text-[11px] uppercase font-bold text-slate-400 tracking-wider mb-3">Repository Stats</h3>
               <div className="space-y-3">
-                <div className="flex justify-between items-center"><span className="text-slate-500">Total Data Size</span><span className="font-semibold text-slate-900">14.21 GB</span></div>
+                <div className="flex justify-between items-center"><span className="text-slate-500">Total Data Size</span><span className="font-semibold text-slate-900">~150 KB</span></div>
                 <div className="flex justify-between items-center"><span className="text-slate-500">Independent Runs</span><span className="font-semibold text-slate-900">1,440</span></div>
                 <div className="flex justify-between items-center"><span className="text-slate-500">Last Analyzed</span><span className="font-semibold text-slate-900">May 2026</span></div>
                 <div className="flex justify-between items-center"><span className="text-slate-500">Authors</span><span className="font-semibold text-slate-900">3</span></div>
@@ -264,13 +302,6 @@ np.random.seed(<span className="text-orange-500">42</span>)
           <section className="pt-6 border-t border-slate-100">
             <h3 className="text-[11px] uppercase font-bold text-slate-400 tracking-wider mb-3">Storage Formats</h3>
             <div className="space-y-2">
-              <div className="p-2 bg-slate-50 rounded flex items-center gap-3">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                <div>
-                  <p className="font-medium text-slate-800">Apache Parquet</p>
-                  <p className="text-[11px] text-slate-500">Columnar Storage (Optimized)</p>
-                </div>
-              </div>
               <div className="p-2 bg-slate-50 rounded flex items-center gap-3">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                 <div>
@@ -330,7 +361,13 @@ np.random.seed(<span className="text-orange-500">42</span>)
                 </button>
               </div>
               <div className="flex gap-2">
-                <input type="text" placeholder="Filter..." className="bg-white border border-slate-300 rounded px-2 py-1 text-xs w-48 outline-none focus:border-indigo-500" />
+                <input 
+                  type="text" 
+                  placeholder="Filter..." 
+                  className="bg-white border border-slate-300 rounded px-2 py-1 text-xs w-48 outline-none focus:border-indigo-500" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
             </div>
 
@@ -341,10 +378,10 @@ np.random.seed(<span className="text-orange-500">42</span>)
           </div>
 
           <div className="flex gap-4 shrink-0">
-            <div className="flex-1 bg-slate-900 rounded-lg p-4 font-mono text-[11px] text-slate-300 relative">
+            <div className="flex-1 bg-slate-900 rounded-lg p-4 font-mono text-[11px] text-slate-300 relative flex flex-col justify-center">
               <div className="absolute top-3 right-4 text-slate-500">Quick Connect</div>
-              <span className="text-indigo-400">$</span> wget -O data.parquet https://github.com/ImpuseCode/LangChain4jvsPython-NativeFrameworks-/raw/main/raw_measurements_full.parquet<br/>
-              <span className="text-indigo-400">$</span> python -m jupyter notebook harness/main_analysis.ipynb
+              <div><span className="text-indigo-400">$</span> git clone https://github.com/ImpuseCode/LangChain4jvsPython-NativeFrameworks-.git</div>
+              <div><span className="text-indigo-400">$</span> python -m jupyter notebook harness/main_analysis.ipynb</div>
             </div>
             <div className="w-64 bg-emerald-50 border border-emerald-100 rounded-lg p-4 flex flex-col justify-center">
               <div className="flex items-center gap-2 text-emerald-800 font-bold mb-1">
