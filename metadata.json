@@ -1,0 +1,6 @@
+{
+  "name": "LC4J Benchmark Repository",
+  "description": "Public release of the LC4J Benchmark harness, raw measurements, and analysis notebooks.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
